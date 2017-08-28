@@ -69,7 +69,6 @@ sub CO2Signal_Undef($$)
    my ( $hash, $arg ) = @_;
 
    RemoveInternalTimer($hash);
-   CO2Signal_CloseEventChannel($hash);
    Log3 $hash->{NAME}, 3, "--- removed ---";
    return undef;
 }
