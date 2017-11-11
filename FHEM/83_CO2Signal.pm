@@ -57,6 +57,7 @@ sub CO2Signal_Define($$)
 
   $attr{$hash->{NAME}}{updateTimer} = "600" if (!defined $attr{$hash->{NAME}}{updateTimer});
 
+  RemoveInternalTimer($hash);
   InternalTimer( gettimeofday() + 25, "CO2Signal_Timer", $hash, 0);
 
   Log3 $hash->{NAME}, 2, "$hash->{NAME} defined as CO2Signal for country '$hash->{countryCode}'";
@@ -69,6 +70,7 @@ sub CO2Signal_Undef($$)
    my ( $hash, $arg ) = @_;
 
    RemoveInternalTimer($hash);
+   CO2Signal_CloseEventChannel($hash);
    Log3 $hash->{NAME}, 3, "--- removed ---";
    return undef;
 }
@@ -87,7 +89,7 @@ sub CO2Signal_Timer
   my ($hash) = @_;
   my $name   = $hash->{NAME};
 
-  my $pollingTimer   = AttrVal($name, "pollingTimer", 60);
+  my $pollingTimer   = AttrVal($name, "updateTimer", 60);
 
   CO2Signal_UpdateStatus($hash);
 
@@ -130,20 +132,22 @@ sub CO2Signal_UpdateCallback($)
   elsif($data ne "") {
     Log3 $name, 5, "$name returned: $data";
 
-    my $parsed = $JSON->decode ($data);
+    eval {
+      my $parsed = $JSON->decode ($data);
 
-    $status = $parsed->{status} if defined $parsed->{status};
+      $status = $parsed->{status} if defined $parsed->{status};
     
-    $readings{status} = $status;
+      foreach my $reading (keys %{$parsed->{data}}) {
+        $readings{$reading} = int ( $parsed->{data}->{$reading} );
+      }
+
+      foreach my $unit (keys %{$parsed->{units}}) {
+        $readings{$unit . "Unit"} = $parsed->{units}->{$unit};
+      }
+    };
+      
+    $readings{state} = $status;
     $hash->{STATE} = $status;
-
-    foreach my $reading (keys %{$parsed->{data}}) {
-      $readings{$reading} = int ( $parsed->{data}->{$reading} );
-    }
-
-    foreach my $unit (keys %{$parsed->{units}}) {
-      $readings{$unit . "Unit"} = $parsed->{units}->{$unit};
-    }
 
     #### Update Readings
     readingsBeginUpdate($hash);
