@@ -138,7 +138,7 @@ sub CO2Signal_UpdateCallback($)
       $status = $parsed->{status} if defined $parsed->{status};
     
       foreach my $reading (keys %{$parsed->{data}}) {
-        $readings{$reading} = int ( $parsed->{data}->{$reading} );
+        $readings{$reading} = $parsed->{data}->{$reading};
       }
 
       foreach my $unit (keys %{$parsed->{units}}) {
